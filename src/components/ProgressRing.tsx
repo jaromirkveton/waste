@@ -1,12 +1,16 @@
 interface ProgressRingProps {
   value: number;
-  color: string;
   size?: number;
+}
+
+function getFullnessColor(value: number): string {
+  if (value < 50) return "#16A34A";
+  if (value < 80) return "#EA580C";
+  return "#DC2626";
 }
 
 export function ProgressRing({
   value,
-  color,
   size = 36,
 }: ProgressRingProps) {
   const stroke = 3;
@@ -15,6 +19,7 @@ export function ProgressRing({
   const clamped = Math.max(0, Math.min(100, value));
   const offset = circumference - (clamped / 100) * circumference;
   const center = size / 2;
+  const color = getFullnessColor(clamped);
 
   return (
     <svg

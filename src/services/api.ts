@@ -57,7 +57,7 @@ export async function fetchNearbyStations(
 ): Promise<WasteStationFeature[]> {
   if (!GOLEMIO_TOKEN) {
     throw new Error(
-      "Chybí VITE_GOLEMIO_TOKEN. Zkopírujte hodnotu z odpady.mojepraha.eu/env-config.js do souboru .env",
+      "Chybí VITE_GOLEMIO_TOKEN. Lokálně ho nastavte v souboru .env, na Vercelu v Settings → Environment Variables. Hodnotu najdete v odpady.mojepraha.eu/env-config.js (REACT_APP_GOLEMIO_TOKEN).",
     );
   }
 

@@ -114,7 +114,7 @@ export function BinCard({ bin, isUpdating = false }: BinCardProps) {
         <div className="flex w-full flex-col items-center">
           <div className="flex items-center justify-center gap-3">
             {hasFullness && (
-              <ProgressRing value={fullness} color={theme.accent} size={36} />
+              <ProgressRing value={fullness} size={36} />
             )}
             <p className="text-headline-h1 text-ink">
               {hasFullness ? `${fullness} %` : "—"}
