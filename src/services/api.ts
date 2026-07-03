@@ -6,17 +6,13 @@ import type {
   WasteContainer,
   WasteStationFeature,
 } from "../types";
+import { FIXED_ADDRESS } from "../../shared/address";
+
+export { FIXED_ADDRESS };
 
 const GOLEMIO_BASE_URL = "https://api.golemio.cz";
 const GOLEMIO_TOKEN = import.meta.env.VITE_GOLEMIO_TOKEN;
 const GOLEMIO_RANGE = Number(import.meta.env.VITE_GOLEMIO_RANGE || 2000);
-
-export const FIXED_ADDRESS: SavedAddress = {
-  formattedAddress: "Jeseniova 2593/98, Praha",
-  placeId: "jeseniova-2593-98",
-  lat: 50.088739,
-  lng: 14.471956,
-};
 
 function haversineMeters(
   lat1: number,
