@@ -1,4 +1,4 @@
-import { Redis } from "@upstash/redis";
+import { getRedis, getRedisConfigError } from "./redis";
 
 const SUBSCRIPTIONS_KEY = "push:subscriptions";
 const BIN_STATE_KEY = "bins:state";
@@ -19,19 +19,8 @@ export interface StoredPushSubscription {
   expirationTime?: number | null;
 }
 
-function getRedis(): Redis | null {
-  const url =
-    process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;
-  const token =
-    process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
-
-  if (!url || !token) return null;
-
-  return new Redis({ url, token });
-}
-
 export function hasStorage(): boolean {
-  return Boolean(getRedis());
+  return getRedisConfigError() === null;
 }
 
 export async function addSubscription(

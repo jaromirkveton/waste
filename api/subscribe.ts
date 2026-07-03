@@ -1,4 +1,8 @@
-import { Redis } from "@upstash/redis";
+import {
+  getRedis,
+  getRedisConfigError,
+  getRedisConfigErrorMessage,
+} from "./lib/redis";
 
 interface VercelRequest {
   method?: string;
@@ -20,23 +24,19 @@ interface StoredPushSubscription {
 
 const SUBSCRIPTIONS_KEY = "push:subscriptions";
 
-function getRedis(): Redis | null {
-  const url =
-    process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;
-  const token =
-    process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
-
-  if (!url || !token) return null;
-  return new Redis({ url, token });
-}
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
+    const configError = getRedisConfigError();
+    if (configError) {
+      return res.status(503).json({
+        error: getRedisConfigErrorMessage(configError),
+      });
+    }
+
     const redis = getRedis();
     if (!redis) {
       return res.status(503).json({
-        error:
-          "Redis není nakonfigurovaný. Ve Vercelu přidejte Upstash Redis integraci.",
+        error: getRedisConfigErrorMessage("missing"),
       });
     }
 
