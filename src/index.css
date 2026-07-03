@@ -1,0 +1,157 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "GT America";
+  src: url("./assets/fonts/GTAmerica-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "GT America";
+  src: url("./assets/fonts/GTAmerica-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --font-sans: "GT America", system-ui, sans-serif;
+  --color-ink: #121212;
+}
+
+@utility text-headline-h1 {
+  font-size: 32px;
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+@utility text-headline-h2 {
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.1;
+}
+
+@utility text-body {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+@utility text-body-bold {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+@utility text-body-sm {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+@utility text-body-sm-bold {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: rgba(0, 0, 0, 0.03);
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-card-in {
+  animation: card-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes card-refresh {
+  0% {
+    opacity: 0.75;
+    transform: translateY(8px) scale(0.98);
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1.012);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-card-refresh {
+  animation: card-refresh 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes card-shimmer-sweep {
+  0% {
+    transform: skewX(-15deg) translateX(-160%);
+  }
+  100% {
+    transform: skewX(-15deg) translateX(320%);
+  }
+}
+
+.card-updating-shimmer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.card-updating-shimmer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 55%;
+  height: 100%;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(0, 0, 0, 0.02) 28%,
+    rgba(0, 0, 0, 0.055) 50%,
+    rgba(0, 0, 0, 0.02) 72%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: card-shimmer-sweep 1.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-card-in,
+  .animate-card-refresh,
+  .animate-spin {
+    animation: none !important;
+  }
+
+  .card-updating-shimmer::after {
+    animation: none;
+    width: 100%;
+    transform: none;
+    background: rgba(0, 0, 0, 0.03);
+  }
+}
