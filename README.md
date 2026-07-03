@@ -15,7 +15,7 @@ Open http://localhost:5173/
 
 ## Push notifications (iOS)
 
-Web push works on iPhone **only when the app is installed on the Home Screen** (Safari → Sdílet → Přidat na plochu). The server checks bin levels every 2 hours and sends a notification when a container was emptied (significant drop in fullness).
+Web push works on iPhone **only when the app is installed on the Home Screen** (Safari → Sdílet → Přidat na plochu). On Vercel Hobby, a daily cron job checks bin levels (around 8:00 Prague time) and sends a notification when a container was emptied.
 
 ### Vercel setup
 
