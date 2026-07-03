@@ -1,5 +1,5 @@
 import webpush from "web-push";
-import type { PushSubscriptionJSON } from "web-push";
+import type { StoredPushSubscription } from "./storage";
 
 let configured = false;
 
@@ -19,7 +19,7 @@ function ensureConfigured() {
 }
 
 export async function sendPushNotification(
-  subscription: PushSubscriptionJSON,
+  subscription: StoredPushSubscription,
   payload: { title: string; body: string },
 ): Promise<void> {
   ensureConfigured();
@@ -27,7 +27,7 @@ export async function sendPushNotification(
 }
 
 export async function sendEmptiedNotifications(
-  subscriptions: PushSubscriptionJSON[],
+  subscriptions: StoredPushSubscription[],
   bins: Array<{ trashType: string; currentPercent: number }>,
 ): Promise<{ sent: number; failed: number }> {
   if (subscriptions.length === 0 || bins.length === 0) {

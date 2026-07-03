@@ -1,6 +1,9 @@
-import { FIXED_ADDRESS } from "../../shared/address.js";
-
 const GOLEMIO_BASE_URL = "https://api.golemio.cz";
+
+const FIXED_ADDRESS = {
+  lat: 50.088739,
+  lng: 14.471956,
+};
 
 interface TrashType {
   id: number;

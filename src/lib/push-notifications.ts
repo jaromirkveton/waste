@@ -75,7 +75,7 @@ export async function subscribeToPushNotifications(): Promise<PushSubscription> 
 
   if (!response.ok) {
     const data = (await response.json().catch(() => null)) as { error?: string } | null;
-    throw new Error(data?.error ?? "Nepodařilo se uložit odběr notifikací.");
+    throw new Error(data?.error ?? `Nepodařilo se uložit odběr notifikací (${response.status}).`);
   }
 
   return subscription;

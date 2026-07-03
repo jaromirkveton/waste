@@ -1,13 +1,13 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { detectEmptiedBins } from "../../shared/bin-snapshot.js";
-import { fetchBinReadings } from "../lib/golemio.js";
-import { sendEmptiedNotifications } from "../lib/push.js";
+import { detectEmptiedBins } from "../lib/detect-emptied";
+import { fetchBinReadings } from "../lib/golemio";
+import { sendEmptiedNotifications } from "../lib/push";
 import {
   getBinState,
   hasStorage,
   listSubscriptions,
   saveBinState,
-} from "../lib/storage.js";
+} from "../lib/storage";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const authHeader = req.headers.authorization;
