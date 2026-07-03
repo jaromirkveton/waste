@@ -1,8 +1,4 @@
-import {
-  getRedis,
-  getRedisConfigError,
-  getRedisConfigErrorMessage,
-} from "./lib/redis";
+import { Redis } from "@upstash/redis";
 
 interface VercelRequest {
   method?: string;
@@ -24,6 +20,32 @@ interface StoredPushSubscription {
 
 const SUBSCRIPTIONS_KEY = "push:subscriptions";
 
+function getRedisEnv() {
+  const url =
+    process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;
+  const token =
+    process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
+  return { url, token };
+}
+
+function getRedisConfigError(): "missing" | "invalid_url" | null {
+  const { url, token } = getRedisEnv();
+  if (!url || !token) return "missing";
+  if (!url.startsWith("https://")) return "invalid_url";
+  return null;
+}
+
+function getRedisConfigErrorMessage(
+  error: "missing" | "invalid_url",
+): string {
+  if (error === "missing") {
+    return "Redis není nakonfigurovaný. Ve Vercelu přidejte Upstash Redis integraci.";
+  }
+
+  const { url } = getRedisEnv();
+  return `Redis URL není platná (musí začínat https://). Ve Vercelu opravte UPSTASH_REDIS_REST_URL — aktuálně: "${url ?? ""}". Hodnotu najdete v Upstash konzoli u databáze jako REST URL.`;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const configError = getRedisConfigError();
@@ -33,12 +55,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    const redis = getRedis();
-    if (!redis) {
-      return res.status(503).json({
-        error: getRedisConfigErrorMessage("missing"),
-      });
-    }
+    const { url, token } = getRedisEnv();
+    const redis = new Redis({ url: url!, token: token! });
 
     if (req.method === "POST") {
       const subscription = req.body as StoredPushSubscription | undefined;
