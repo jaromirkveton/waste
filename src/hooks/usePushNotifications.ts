@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   getCurrentPushSubscription,
   getIosInstallHint,
+  isIosDevice,
   isPushSupported,
   subscribeToPushNotifications,
   unsubscribeFromPushNotifications,
@@ -21,13 +22,13 @@ export function usePushNotifications() {
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    if (!isPushSupported()) {
-      setStatus("unsupported");
+    if (getIosInstallHint() || (isIosDevice() && !isStandalonePushAvailable())) {
+      setStatus("needs-install");
       return;
     }
 
-    if (getIosInstallHint()) {
-      setStatus("needs-install");
+    if (!isPushSupported()) {
+      setStatus("unsupported");
       return;
     }
 
@@ -53,9 +54,9 @@ export function usePushNotifications() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Nepodařilo se povolit notifikace.");
       await refresh();
-      if (Notification.permission === "denied") {
+      if (typeof Notification !== "undefined" && Notification.permission === "denied") {
         setStatus("denied");
-      } else if (getIosInstallHint()) {
+      } else if (getIosInstallHint() || isIosDevice()) {
         setStatus("needs-install");
       } else {
         setStatus("error");
@@ -82,4 +83,8 @@ export function usePushNotifications() {
     unsubscribe,
     refresh,
   };
+}
+
+function isStandalonePushAvailable(): boolean {
+  return isPushSupported() && !getIosInstallHint();
 }
