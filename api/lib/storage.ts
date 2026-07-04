@@ -7,7 +7,6 @@ export interface BinSnapshot {
   containerId: number;
   trashType: string;
   percent: number;
-  wasHigh: boolean;
 }
 
 export interface StoredPushSubscription {
