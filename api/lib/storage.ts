@@ -22,17 +22,34 @@ export function hasStorage(): boolean {
   return getRedisConfigError() === null;
 }
 
+function parseSubscription(value: unknown): StoredPushSubscription | null {
+  try {
+    const parsed =
+      typeof value === "string" ? JSON.parse(value) : value;
+
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      typeof (parsed as StoredPushSubscription).endpoint === "string" &&
+      (parsed as StoredPushSubscription).keys?.p256dh &&
+      (parsed as StoredPushSubscription).keys?.auth
+    ) {
+      return parsed as StoredPushSubscription;
+    }
+  } catch {
+    // Skip legacy or corrupt hash entries.
+  }
+
+  return null;
+}
+
 export async function addSubscription(
   subscription: StoredPushSubscription,
 ): Promise<void> {
   const redis = getRedis();
   if (!redis) throw new Error("Redis is not configured");
 
-  await redis.hset(
-    SUBSCRIPTIONS_KEY,
-    subscription.endpoint,
-    JSON.stringify(subscription),
-  );
+  await redis.hset(SUBSCRIPTIONS_KEY, subscription.endpoint, subscription);
 }
 
 export async function removeSubscription(endpoint: string): Promise<void> {
@@ -45,10 +62,14 @@ export async function listSubscriptions(): Promise<StoredPushSubscription[]> {
   const redis = getRedis();
   if (!redis) return [];
 
-  const entries = await redis.hgetall<Record<string, string>>(SUBSCRIPTIONS_KEY);
+  const entries = await redis.hgetall<Record<string, unknown>>(SUBSCRIPTIONS_KEY);
   if (!entries) return [];
 
-  return Object.values(entries).map((value) => JSON.parse(value));
+  return Object.values(entries)
+    .map(parseSubscription)
+    .filter((subscription): subscription is StoredPushSubscription =>
+      subscription !== null,
+    );
 }
 
 export async function getBinState(): Promise<BinSnapshot[]> {

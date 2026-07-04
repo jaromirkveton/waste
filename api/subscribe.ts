@@ -71,7 +71,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await redis.hset(
         SUBSCRIPTIONS_KEY,
         subscription.endpoint,
-        JSON.stringify(subscription),
+        subscription,
       );
 
       return res.status(200).json({ ok: true });
