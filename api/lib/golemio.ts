@@ -19,7 +19,11 @@ interface WasteContainer {
 }
 
 interface WasteStationFeature {
+  geometry: {
+    coordinates: [number, number];
+  };
   properties: {
+    name: string;
     containers: WasteContainer[];
   };
 }
@@ -32,6 +36,40 @@ export interface ServerBinReading {
   containerId: number;
   trashType: string;
   percent: number;
+}
+
+function haversineMeters(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number,
+): number {
+  const R = 6371000;
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function pickNearestStation(
+  features: WasteStationFeature[],
+): WasteStationFeature | undefined {
+  if (features.length === 0) return undefined;
+
+  return features
+    .map((feature) => ({
+      feature,
+      distance: haversineMeters(
+        FIXED_ADDRESS.lat,
+        FIXED_ADDRESS.lng,
+        feature.geometry.coordinates[1],
+        feature.geometry.coordinates[0],
+      ),
+    }))
+    .sort((a, b) => a.distance - b.distance)[0]?.feature;
 }
 
 export async function fetchBinReadings(): Promise<ServerBinReading[]> {
@@ -63,7 +101,7 @@ export async function fetchBinReadings(): Promise<ServerBinReading[]> {
   }
 
   const data = (await response.json()) as GolemioResponse;
-  const nearest = data.features?.[0];
+  const nearest = pickNearestStation(data.features ?? []);
   if (!nearest) return [];
 
   return (nearest.properties.containers ?? [])

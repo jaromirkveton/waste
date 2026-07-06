@@ -1,13 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { detectEmptiedBins } from "../lib/detect-emptied";
-import { fetchBinReadings } from "../lib/golemio";
-import { sendEmptiedNotifications } from "../lib/push";
-import {
-  getBinState,
-  hasStorage,
-  listSubscriptions,
-  saveBinState,
-} from "../lib/storage";
+import { runBinCheck } from "../lib/run-bin-check";
+import { hasStorage } from "../lib/storage";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const authHeader = req.headers.authorization;
@@ -20,20 +13,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const readings = await fetchBinReadings();
-    const previous = await getBinState();
-    const { emptied, nextState } = detectEmptiedBins(previous, readings);
-
-    await saveBinState(nextState);
-
-    const subscriptions = await listSubscriptions();
-    const { sent, failed } = await sendEmptiedNotifications(subscriptions, emptied);
+    const result = await runBinCheck();
 
     return res.status(200).json({
       ok: true,
-      readings: readings.length,
-      emptied: emptied.length,
-      notifications: { sent, failed },
+      readings: result.stationReadings.length,
+      previous: result.previous,
+      current: result.stationReadings,
+      emptied: result.emptied,
+      subscriptions: result.subscriptions,
+      notifications: result.notifications,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";

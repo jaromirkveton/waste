@@ -1,5 +1,5 @@
 import webpush from "web-push";
-import type { StoredPushSubscription } from "./storage";
+import { removeSubscription, type StoredPushSubscription } from "./storage";
 
 let configured = false;
 
@@ -49,8 +49,16 @@ export async function sendEmptiedNotifications(
         body,
       });
       sent += 1;
-    } catch {
+    } catch (error) {
       failed += 1;
+      const statusCode =
+        error && typeof error === "object" && "statusCode" in error
+          ? (error as { statusCode?: number }).statusCode
+          : undefined;
+
+      if (statusCode === 404 || statusCode === 410) {
+        await removeSubscription(subscription.endpoint).catch(() => undefined);
+      }
     }
   }
 

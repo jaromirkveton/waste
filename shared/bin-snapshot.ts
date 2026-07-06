@@ -15,11 +15,12 @@ export function detectEmptiedBins(
   previous: BinSnapshot[],
   current: BinSnapshot[],
 ): { emptied: EmptiedBin[]; nextState: BinSnapshot[] } {
-  const prevMap = new Map(previous.map((bin) => [bin.containerId, bin]));
+  const prevById = new Map(previous.map((bin) => [bin.containerId, bin]));
+  const prevByType = new Map(previous.map((bin) => [bin.trashType, bin]));
   const emptied: EmptiedBin[] = [];
 
   const nextState: BinSnapshot[] = current.map((bin) => {
-    const prev = prevMap.get(bin.containerId);
+    const prev = prevById.get(bin.containerId) ?? prevByType.get(bin.trashType);
 
     if (prev !== undefined && bin.percent < prev.percent) {
       emptied.push({
