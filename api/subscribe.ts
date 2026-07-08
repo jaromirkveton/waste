@@ -46,6 +46,23 @@ function getRedisConfigErrorMessage(
   return `Redis URL není platná (musí začínat https://). Ve Vercelu opravte UPSTASH_REDIS_REST_URL — aktuálně: "${url ?? ""}". Hodnotu najdete v Upstash konzoli u databáze jako REST URL.`;
 }
 
+function parseRequestBody(body: unknown): unknown {
+  if (typeof body === "string") {
+    try {
+      return JSON.parse(body);
+    } catch {
+      return undefined;
+    }
+  }
+
+  return body;
+}
+
+async function countSubscriptions(redis: Redis): Promise<number> {
+  const entries = await redis.hgetall<Record<string, unknown>>(SUBSCRIPTIONS_KEY);
+  return entries ? Object.keys(entries).length : 0;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const configError = getRedisConfigError();
@@ -59,7 +76,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const redis = new Redis({ url: url!, token: token! });
 
     if (req.method === "POST") {
-      const subscription = req.body as StoredPushSubscription | undefined;
+      const subscription = parseRequestBody(req.body) as
+        | StoredPushSubscription
+        | undefined;
       if (
         !subscription?.endpoint ||
         !subscription.keys?.p256dh ||
@@ -74,17 +93,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         subscription,
       );
 
-      return res.status(200).json({ ok: true });
+      const subscriptions = await countSubscriptions(redis);
+      return res.status(200).json({ ok: true, subscriptions });
     }
 
     if (req.method === "DELETE") {
-      const body = req.body as { endpoint?: string } | undefined;
+      const body = parseRequestBody(req.body) as { endpoint?: string } | undefined;
       if (!body?.endpoint) {
         return res.status(400).json({ error: "Chybí endpoint odběru." });
       }
 
       await redis.hdel(SUBSCRIPTIONS_KEY, body.endpoint);
-      return res.status(200).json({ ok: true });
+      const subscriptions = await countSubscriptions(redis);
+      return res.status(200).json({ ok: true, subscriptions });
     }
 
     return res.status(405).json({ error: "Method not allowed" });

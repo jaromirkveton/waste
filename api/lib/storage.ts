@@ -43,6 +43,18 @@ function parseSubscription(value: unknown): StoredPushSubscription | null {
   return null;
 }
 
+function countStoredSubscriptions(
+  entries: Record<string, unknown> | null,
+): number {
+  if (!entries) return 0;
+
+  return Object.values(entries)
+    .map(parseSubscription)
+    .filter((subscription): subscription is StoredPushSubscription =>
+      subscription !== null,
+    ).length;
+}
+
 export async function addSubscription(
   subscription: StoredPushSubscription,
 ): Promise<void> {
@@ -65,11 +77,27 @@ export async function listSubscriptions(): Promise<StoredPushSubscription[]> {
   const entries = await redis.hgetall<Record<string, unknown>>(SUBSCRIPTIONS_KEY);
   if (!entries) return [];
 
-  return Object.values(entries)
+  const subscriptions = Object.values(entries)
     .map(parseSubscription)
     .filter((subscription): subscription is StoredPushSubscription =>
       subscription !== null,
     );
+
+  if (subscriptions.length === 0 && Object.keys(entries).length > 0) {
+    console.error(
+      `Found ${Object.keys(entries).length} Redis subscription entries, but none parsed.`,
+    );
+  }
+
+  return subscriptions;
+}
+
+export async function countSubscriptions(): Promise<number> {
+  const redis = getRedis();
+  if (!redis) return 0;
+
+  const entries = await redis.hgetall<Record<string, unknown>>(SUBSCRIPTIONS_KEY);
+  return countStoredSubscriptions(entries);
 }
 
 export async function getBinState(): Promise<BinSnapshot[]> {

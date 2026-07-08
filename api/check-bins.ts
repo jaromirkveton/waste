@@ -28,6 +28,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       current: result.stationReadings,
       emptied: result.emptied,
       subscriptions: result.subscriptions,
+      storedSubscriptions: result.storedSubscriptions,
       notifications: result.notifications,
       stateSaved: result.stateSaved,
     });
