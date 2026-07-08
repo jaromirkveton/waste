@@ -15,6 +15,7 @@ export interface BinCheckResult {
   emptied: EmptiedBin[];
   subscriptions: number;
   notifications: { sent: number; failed: number };
+  stateSaved: boolean;
 }
 
 export async function runBinCheck(): Promise<BinCheckResult> {
@@ -29,9 +30,12 @@ export async function runBinCheck(): Promise<BinCheckResult> {
   const subscriptions = await listSubscriptions();
   const notifications = await sendEmptiedNotifications(subscriptions, emptied);
 
-  // Save only after notifications are attempted so a mid-run failure
-  // does not skip alerts on the next check.
-  await saveBinState(nextState);
+  const stateSaved =
+    emptied.length === 0 || notifications.sent > 0;
+
+  if (stateSaved) {
+    await saveBinState(nextState);
+  }
 
   return {
     stationReadings: readings,
@@ -39,5 +43,6 @@ export async function runBinCheck(): Promise<BinCheckResult> {
     emptied,
     subscriptions: subscriptions.length,
     notifications,
+    stateSaved,
   };
 }

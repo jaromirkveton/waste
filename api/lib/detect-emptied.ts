@@ -7,6 +7,25 @@ export interface EmptiedBin {
   currentPercent: number;
 }
 
+function mergeNextState(
+  previous: BinSnapshot[],
+  current: BinSnapshot[],
+): BinSnapshot[] {
+  const next = [...current];
+
+  for (const prev of previous) {
+    const stillPresent = current.some(
+      (bin) =>
+        bin.containerId === prev.containerId || bin.trashType === prev.trashType,
+    );
+    if (!stillPresent) {
+      next.push(prev);
+    }
+  }
+
+  return next;
+}
+
 export function detectEmptiedBins(
   previous: BinSnapshot[],
   current: BinSnapshot[],
@@ -15,7 +34,7 @@ export function detectEmptiedBins(
   const prevByType = new Map(previous.map((bin) => [bin.trashType, bin]));
   const emptied: EmptiedBin[] = [];
 
-  const nextState: BinSnapshot[] = current.map((bin) => {
+  for (const bin of current) {
     const prev = prevById.get(bin.containerId) ?? prevByType.get(bin.trashType);
 
     if (prev !== undefined && bin.percent < prev.percent) {
@@ -26,9 +45,10 @@ export function detectEmptiedBins(
         currentPercent: bin.percent,
       });
     }
+  }
 
-    return bin;
-  });
-
-  return { emptied, nextState };
+  return {
+    emptied,
+    nextState: mergeNextState(previous, current),
+  };
 }

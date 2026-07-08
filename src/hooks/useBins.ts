@@ -16,7 +16,7 @@ export function useBins() {
       return bins;
     },
     staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
   });
 
   const { refetch, isRefetching, data } = query;
@@ -32,6 +32,7 @@ export function useBins() {
       ]);
       if (!result.error) {
         setRefreshAnimationKey((key) => key + 1);
+        void syncBinCheckIfSubscribed({ force: true });
       }
     } finally {
       setIsManualRefresh(false);

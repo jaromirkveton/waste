@@ -23,6 +23,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       emptied: result.emptied,
       subscriptions: result.subscriptions,
       notifications: result.notifications,
+      stateSaved: result.stateSaved,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";

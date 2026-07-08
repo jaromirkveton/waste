@@ -24,8 +24,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json({
       ok: true,
-      emptied: result.emptied.length,
+      previous: result.previous,
+      current: result.stationReadings,
+      emptied: result.emptied,
+      subscriptions: result.subscriptions,
       notifications: result.notifications,
+      stateSaved: result.stateSaved,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
