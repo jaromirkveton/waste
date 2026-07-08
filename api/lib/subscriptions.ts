@@ -1,6 +1,7 @@
 import { getRedis } from "./redis";
 
 export const SUBSCRIPTIONS_KEY = "push:subscriptions";
+export const SUBSCRIPTIONS_LIST_KEY = "push:subscriptions:v2";
 
 export interface StoredPushSubscription {
   endpoint: string;
@@ -11,7 +12,9 @@ export interface StoredPushSubscription {
   expirationTime?: number | null;
 }
 
-function isSubscription(value: unknown): value is StoredPushSubscription {
+export function isValidSubscription(
+  value: unknown,
+): value is StoredPushSubscription {
   return (
     !!value &&
     typeof value === "object" &&
@@ -21,64 +24,33 @@ function isSubscription(value: unknown): value is StoredPushSubscription {
   );
 }
 
-export function parseSubscriptionEntry(
-  field: string,
-  value: unknown,
-): StoredPushSubscription | null {
-  if (isSubscription(value)) {
+function parseLegacyHashValue(value: unknown): StoredPushSubscription | null {
+  if (isValidSubscription(value)) {
     return value;
   }
 
-  if (typeof value === "string") {
-    if (value.startsWith("{")) {
-      try {
-        return parseSubscriptionEntry(field, JSON.parse(value));
-      } catch {
-        return null;
-      }
+  if (typeof value === "string" && value.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      return isValidSubscription(parsed) ? parsed : null;
+    } catch {
+      return null;
     }
-
-    return null;
   }
 
   return null;
 }
 
-export async function saveSubscription(
-  subscription: StoredPushSubscription,
-): Promise<void> {
+async function readLegacyHashSubscriptions(): Promise<StoredPushSubscription[]> {
   const redis = getRedis();
-  if (!redis) throw new Error("Redis is not configured");
-
-  await redis.hset(
-    SUBSCRIPTIONS_KEY,
-    subscription.endpoint,
-    JSON.stringify(subscription),
-  );
-}
-
-export async function removeSubscription(endpoint: string): Promise<void> {
-  const redis = getRedis();
-  if (!redis) throw new Error("Redis is not configured");
-  await redis.hdel(SUBSCRIPTIONS_KEY, endpoint);
-}
-
-export async function readSubscriptionEntries(): Promise<
-  Record<string, unknown>
-> {
-  const redis = getRedis();
-  if (!redis) return {};
+  if (!redis) return [];
 
   const entries = await redis.hgetall<Record<string, unknown>>(SUBSCRIPTIONS_KEY);
-  return entries ?? {};
-}
+  if (!entries) return [];
 
-export async function listSubscriptions(): Promise<StoredPushSubscription[]> {
-  const entries = await readSubscriptionEntries();
   const subscriptions: StoredPushSubscription[] = [];
-
   for (const [field, value] of Object.entries(entries)) {
-    const parsed = parseSubscriptionEntry(field, value);
+    const parsed = parseLegacyHashValue(value);
     if (parsed) {
       subscriptions.push(parsed);
     }
@@ -87,9 +59,57 @@ export async function listSubscriptions(): Promise<StoredPushSubscription[]> {
   return subscriptions;
 }
 
+export async function listSubscriptions(): Promise<StoredPushSubscription[]> {
+  const redis = getRedis();
+  if (!redis) return [];
+
+  const stored = await redis.get<StoredPushSubscription[]>(SUBSCRIPTIONS_LIST_KEY);
+  if (Array.isArray(stored)) {
+    return stored.filter(isValidSubscription);
+  }
+
+  return readLegacyHashSubscriptions();
+}
+
+export async function saveSubscription(
+  subscription: StoredPushSubscription,
+): Promise<number> {
+  const redis = getRedis();
+  if (!redis) throw new Error("Redis is not configured");
+
+  const existing = await listSubscriptions();
+  const next = [
+    ...existing.filter((item) => item.endpoint !== subscription.endpoint),
+    subscription,
+  ];
+
+  await redis.set(SUBSCRIPTIONS_LIST_KEY, next);
+  await redis.del(SUBSCRIPTIONS_KEY);
+
+  return next.length;
+}
+
+export async function removeSubscription(endpoint: string): Promise<number> {
+  const redis = getRedis();
+  if (!redis) throw new Error("Redis is not configured");
+
+  const existing = await listSubscriptions();
+  const next = existing.filter((item) => item.endpoint !== endpoint);
+  await redis.set(SUBSCRIPTIONS_LIST_KEY, next);
+  return next.length;
+}
+
 export async function countRawSubscriptions(): Promise<number> {
-  const entries = await readSubscriptionEntries();
-  return Object.keys(entries).length;
+  const redis = getRedis();
+  if (!redis) return 0;
+
+  const listCount = (await listSubscriptions()).length;
+  if (listCount > 0) {
+    return listCount;
+  }
+
+  const entries = await redis.hgetall<Record<string, unknown>>(SUBSCRIPTIONS_KEY);
+  return entries ? Object.keys(entries).length : 0;
 }
 
 export async function countValidSubscriptions(): Promise<number> {
@@ -100,17 +120,32 @@ export async function cleanupInvalidSubscriptions(): Promise<number> {
   const redis = getRedis();
   if (!redis) return 0;
 
-  const entries = await readSubscriptionEntries();
-  const invalidFields = Object.entries(entries)
-    .filter(([field, value]) => !parseSubscriptionEntry(field, value))
-    .map(([field]) => field);
+  const entries = await redis.hgetall<Record<string, unknown>>(SUBSCRIPTIONS_KEY);
+  const invalidCount = entries ? Object.keys(entries).length : 0;
 
-  if (invalidFields.length === 0) return 0;
-
-  for (let index = 0; index < invalidFields.length; index += 50) {
-    const batch = invalidFields.slice(index, index + 50);
-    await redis.hdel(SUBSCRIPTIONS_KEY, ...batch);
+  if (invalidCount > 0) {
+    await redis.del(SUBSCRIPTIONS_KEY);
   }
 
-  return invalidFields.length;
+  return invalidCount;
+}
+
+export async function prepareSubscriptionsForSend(): Promise<StoredPushSubscription[]> {
+  const subscriptions = await listSubscriptions();
+  if (subscriptions.length > 0) {
+    return subscriptions;
+  }
+
+  const legacy = await readLegacyHashSubscriptions();
+  if (legacy.length > 0) {
+    const redis = getRedis();
+    if (redis) {
+      await redis.set(SUBSCRIPTIONS_LIST_KEY, legacy);
+      await redis.del(SUBSCRIPTIONS_KEY);
+    }
+    return legacy;
+  }
+
+  await cleanupInvalidSubscriptions();
+  return listSubscriptions();
 }

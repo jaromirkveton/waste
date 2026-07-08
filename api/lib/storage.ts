@@ -4,6 +4,7 @@ import {
   countRawSubscriptions,
   countValidSubscriptions,
   listSubscriptions,
+  prepareSubscriptionsForSend,
   removeSubscription,
   saveSubscription,
   type StoredPushSubscription,
@@ -49,19 +50,4 @@ export async function saveBinState(state: BinSnapshot[]): Promise<void> {
   await redis.set(BIN_STATE_KEY, state);
 }
 
-export async function prepareSubscriptionsForSend(): Promise<StoredPushSubscription[]> {
-  const subscriptions = await listSubscriptions();
-  if (subscriptions.length > 0) {
-    return subscriptions;
-  }
-
-  const rawCount = await countRawSubscriptions();
-  if (rawCount === 0) {
-    return [];
-  }
-
-  await cleanupInvalidSubscriptions();
-  return listSubscriptions();
-}
-
-export { countRawSubscriptions, countValidSubscriptions, cleanupInvalidSubscriptions };
+export { prepareSubscriptionsForSend, countRawSubscriptions, countValidSubscriptions, cleanupInvalidSubscriptions };

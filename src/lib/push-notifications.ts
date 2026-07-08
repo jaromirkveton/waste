@@ -45,14 +45,14 @@ async function saveSubscriptionOnServer(subscription: PushSubscription): Promise
   });
 
   const data = (await response.json().catch(() => null)) as
-    | { error?: string; subscriptions?: number }
+    | { error?: string; ok?: boolean; saved?: boolean; subscriptions?: number }
     | null;
 
   if (!response.ok) {
     throw new Error(data?.error ?? `Nepodařilo se uložit odběr notifikací (${response.status}).`);
   }
 
-  if (!data?.subscriptions) {
+  if (!data?.ok || !data.saved) {
     throw new Error("Odběr se nepodařilo uložit na server. Zkuste notifikace vypnout a znovu zapnout.");
   }
 }

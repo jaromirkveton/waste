@@ -10,6 +10,7 @@ interface VercelResponse {
 }
 
 const SUBSCRIPTIONS_KEY = "push:subscriptions";
+const SUBSCRIPTIONS_LIST_KEY = "push:subscriptions:v2";
 
 function getRedisEnv() {
   const url =
@@ -37,27 +38,19 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
 
   try {
     const redis = new Redis({ url, token });
-    const entries = await redis.hgetall<Record<string, unknown>>(SUBSCRIPTIONS_KEY);
-    const raw = entries ? Object.keys(entries).length : 0;
-    const valid = entries
-      ? Object.values(entries).filter((value) => {
-          if (isValidSubscription(value)) return true;
-          if (typeof value === "string" && value.startsWith("{")) {
-            try {
-              return isValidSubscription(JSON.parse(value));
-            } catch {
-              return false;
-            }
-          }
-          return false;
-        }).length
+    const stored = await redis.get<unknown[]>(SUBSCRIPTIONS_LIST_KEY);
+    const valid = Array.isArray(stored)
+      ? stored.filter(isValidSubscription).length
       : 0;
+
+    const legacyEntries = await redis.hgetall<Record<string, unknown>>(SUBSCRIPTIONS_KEY);
+    const rawLegacy = legacyEntries ? Object.keys(legacyEntries).length : 0;
 
     return res.status(200).json({
       ok: true,
       subscriptions: valid,
-      rawSubscriptions: raw,
-      invalidSubscriptions: Math.max(0, raw - valid),
+      rawSubscriptions: valid + rawLegacy,
+      invalidSubscriptions: rawLegacy,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";

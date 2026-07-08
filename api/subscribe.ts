@@ -19,6 +19,7 @@ interface StoredPushSubscription {
 }
 
 const SUBSCRIPTIONS_KEY = "push:subscriptions";
+const SUBSCRIPTIONS_LIST_KEY = "push:subscriptions:v2";
 
 function getRedisEnv() {
   const url =
@@ -68,21 +69,26 @@ function isValidSubscription(value: unknown): value is StoredPushSubscription {
   );
 }
 
-async function countValidSubscriptions(redis: Redis): Promise<number> {
-  const entries = await redis.hgetall<Record<string, unknown>>(SUBSCRIPTIONS_KEY);
-  if (!entries) return 0;
+async function listSubscriptions(redis: Redis): Promise<StoredPushSubscription[]> {
+  const stored = await redis.get<StoredPushSubscription[]>(SUBSCRIPTIONS_LIST_KEY);
+  if (!Array.isArray(stored)) return [];
+  return stored.filter(isValidSubscription);
+}
 
-  return Object.entries(entries).filter(([, value]) => {
-    if (isValidSubscription(value)) return true;
-    if (typeof value === "string" && value.startsWith("{")) {
-      try {
-        return isValidSubscription(JSON.parse(value));
-      } catch {
-        return false;
-      }
-    }
-    return false;
-  }).length;
+async function saveSubscription(
+  redis: Redis,
+  subscription: StoredPushSubscription,
+): Promise<number> {
+  const existing = await listSubscriptions(redis);
+  const next = [
+    ...existing.filter((item) => item.endpoint !== subscription.endpoint),
+    subscription,
+  ];
+
+  await redis.set(SUBSCRIPTIONS_LIST_KEY, next);
+  await redis.del(SUBSCRIPTIONS_KEY);
+
+  return next.length;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -105,14 +111,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: "Neplatná data odběru notifikací." });
       }
 
-      await redis.hset(
-        SUBSCRIPTIONS_KEY,
-        subscription.endpoint,
-        JSON.stringify(subscription),
-      );
-
-      const subscriptions = await countValidSubscriptions(redis);
-      return res.status(200).json({ ok: true, subscriptions });
+      const subscriptions = await saveSubscription(redis, subscription);
+      return res.status(200).json({ ok: true, subscriptions, saved: true });
     }
 
     if (req.method === "DELETE") {
@@ -121,9 +121,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: "Chybí endpoint odběru." });
       }
 
-      await redis.hdel(SUBSCRIPTIONS_KEY, body.endpoint);
-      const subscriptions = await countValidSubscriptions(redis);
-      return res.status(200).json({ ok: true, subscriptions });
+      const existing = await listSubscriptions(redis);
+      const next = existing.filter((item) => item.endpoint !== body.endpoint);
+      await redis.set(SUBSCRIPTIONS_LIST_KEY, next);
+
+      return res.status(200).json({ ok: true, subscriptions: next.length });
     }
 
     return res.status(405).json({ error: "Method not allowed" });
