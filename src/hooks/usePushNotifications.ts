@@ -5,6 +5,7 @@ import {
   getIosInstallHint,
   isIosDevice,
   isPushSupported,
+  registerServerSubscription,
   subscribeToPushNotifications,
   unsubscribeFromPushNotifications,
 } from "../lib/push-notifications";
@@ -39,7 +40,23 @@ export function usePushNotifications() {
     }
 
     const subscription = await getCurrentPushSubscription();
-    setStatus(subscription ? "subscribed" : "idle");
+    if (!subscription) {
+      setStatus("idle");
+      return;
+    }
+
+    try {
+      await registerServerSubscription();
+      setStatus("subscribed");
+      setError(null);
+    } catch (err) {
+      setStatus("error");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Odběr není uložený na serveru. Vypněte a znovu zapněte notifikace.",
+      );
+    }
   }, []);
 
   useEffect(() => {

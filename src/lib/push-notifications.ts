@@ -37,6 +37,19 @@ async function waitForServiceWorker(): Promise<ServiceWorkerRegistration> {
   return navigator.serviceWorker.ready;
 }
 
+async function saveSubscriptionOnServer(subscription: PushSubscription): Promise<void> {
+  const response = await fetch("/api/subscribe", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(subscription.toJSON()),
+  });
+
+  if (!response.ok) {
+    const data = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(data?.error ?? `Nepodařilo se uložit odběr notifikací (${response.status}).`);
+  }
+}
+
 export async function subscribeToPushNotifications(): Promise<PushSubscription> {
   if (!isPushSupported()) {
     throw new Error("Tento prohlížeč nepodporuje push notifikace.");
@@ -67,18 +80,17 @@ export async function subscribeToPushNotifications(): Promise<PushSubscription> 
     });
   }
 
-  const response = await fetch("/api/subscribe", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(subscription.toJSON()),
-  });
+  await saveSubscriptionOnServer(subscription);
+  return subscription;
+}
 
-  if (!response.ok) {
-    const data = (await response.json().catch(() => null)) as { error?: string } | null;
-    throw new Error(data?.error ?? `Nepodařilo se uložit odběr notifikací (${response.status}).`);
+export async function registerServerSubscription(): Promise<void> {
+  const subscription = await getCurrentPushSubscription();
+  if (!subscription) {
+    throw new Error("Chybí lokální odběr notifikací.");
   }
 
-  return subscription;
+  await saveSubscriptionOnServer(subscription);
 }
 
 export async function unsubscribeFromPushNotifications(): Promise<void> {

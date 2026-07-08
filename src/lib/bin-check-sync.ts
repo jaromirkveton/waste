@@ -1,20 +1,7 @@
-import { getCurrentPushSubscription } from "./push-notifications";
+import { getCurrentPushSubscription, registerServerSubscription } from "./push-notifications";
 
 let lastSyncAt = 0;
 const SYNC_COOLDOWN_MS = 60 * 1000;
-
-async function ensureServerSubscription(): Promise<boolean> {
-  const subscription = await getCurrentPushSubscription();
-  if (!subscription) return false;
-
-  const response = await fetch("/api/subscribe", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(subscription.toJSON()),
-  });
-
-  return response.ok;
-}
 
 export async function syncBinCheckIfSubscribed(
   options: { force?: boolean } = {},
@@ -26,7 +13,7 @@ export async function syncBinCheckIfSubscribed(
   if (!options.force && now - lastSyncAt < SYNC_COOLDOWN_MS) return;
 
   try {
-    await ensureServerSubscription();
+    await registerServerSubscription();
     await fetch("/api/check-bins", { method: "POST" });
     lastSyncAt = Date.now();
   } catch {
