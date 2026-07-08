@@ -4,8 +4,9 @@ import { sendEmptiedNotifications } from "./push";
 import {
   getBinState,
   hasStorage,
-  listSubscriptions,
-  countSubscriptions,
+  countRawSubscriptions,
+  countValidSubscriptions,
+  prepareSubscriptionsForSend,
   saveBinState,
   type BinSnapshot,
 } from "./storage";
@@ -16,6 +17,8 @@ export interface BinCheckResult {
   emptied: EmptiedBin[];
   subscriptions: number;
   storedSubscriptions: number;
+  rawSubscriptions: number;
+  cleanedInvalidSubscriptions: number;
   notifications: { sent: number; failed: number };
   stateSaved: boolean;
 }
@@ -29,8 +32,14 @@ export async function runBinCheck(): Promise<BinCheckResult> {
   const previous = await getBinState();
   const { emptied, nextState } = detectEmptiedBins(previous, readings);
 
-  const subscriptions = await listSubscriptions();
-  const storedSubscriptions = await countSubscriptions();
+  const rawSubscriptions = await countRawSubscriptions();
+  const validBefore = await countValidSubscriptions();
+  const subscriptions = await prepareSubscriptionsForSend();
+  const storedSubscriptions = subscriptions.length;
+  const cleanedInvalidSubscriptions =
+    validBefore === 0 && rawSubscriptions > storedSubscriptions
+      ? rawSubscriptions - storedSubscriptions
+      : 0;
   const notifications = await sendEmptiedNotifications(subscriptions, emptied);
 
   const stateSaved =
@@ -46,6 +55,8 @@ export async function runBinCheck(): Promise<BinCheckResult> {
     emptied,
     subscriptions: subscriptions.length,
     storedSubscriptions,
+    rawSubscriptions,
+    cleanedInvalidSubscriptions,
     notifications,
     stateSaved,
   };

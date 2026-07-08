@@ -23,6 +23,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       emptied: result.emptied,
       subscriptions: result.subscriptions,
       storedSubscriptions: result.storedSubscriptions,
+      rawSubscriptions: result.rawSubscriptions,
+      cleanedInvalidSubscriptions: result.cleanedInvalidSubscriptions,
       notifications: result.notifications,
       stateSaved: result.stateSaved,
     });

@@ -58,9 +58,31 @@ function parseRequestBody(body: unknown): unknown {
   return body;
 }
 
-async function countSubscriptions(redis: Redis): Promise<number> {
+function isValidSubscription(value: unknown): value is StoredPushSubscription {
+  return (
+    !!value &&
+    typeof value === "object" &&
+    typeof (value as StoredPushSubscription).endpoint === "string" &&
+    typeof (value as StoredPushSubscription).keys?.p256dh === "string" &&
+    typeof (value as StoredPushSubscription).keys?.auth === "string"
+  );
+}
+
+async function countValidSubscriptions(redis: Redis): Promise<number> {
   const entries = await redis.hgetall<Record<string, unknown>>(SUBSCRIPTIONS_KEY);
-  return entries ? Object.keys(entries).length : 0;
+  if (!entries) return 0;
+
+  return Object.entries(entries).filter(([, value]) => {
+    if (isValidSubscription(value)) return true;
+    if (typeof value === "string" && value.startsWith("{")) {
+      try {
+        return isValidSubscription(JSON.parse(value));
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  }).length;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -79,21 +101,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const subscription = parseRequestBody(req.body) as
         | StoredPushSubscription
         | undefined;
-      if (
-        !subscription?.endpoint ||
-        !subscription.keys?.p256dh ||
-        !subscription.keys?.auth
-      ) {
+      if (!isValidSubscription(subscription)) {
         return res.status(400).json({ error: "Neplatná data odběru notifikací." });
       }
 
       await redis.hset(
         SUBSCRIPTIONS_KEY,
         subscription.endpoint,
-        subscription,
+        JSON.stringify(subscription),
       );
 
-      const subscriptions = await countSubscriptions(redis);
+      const subscriptions = await countValidSubscriptions(redis);
       return res.status(200).json({ ok: true, subscriptions });
     }
 
@@ -104,7 +122,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       await redis.hdel(SUBSCRIPTIONS_KEY, body.endpoint);
-      const subscriptions = await countSubscriptions(redis);
+      const subscriptions = await countValidSubscriptions(redis);
       return res.status(200).json({ ok: true, subscriptions });
     }
 
