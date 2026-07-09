@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import {
   formatDate,
   formatDateTime,
@@ -44,6 +45,35 @@ function CheckedAtInfo({
   relative: string;
   exact: string | null;
 }) {
+  const [showTapTooltip, setShowTapTooltip] = useState(false);
+  const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const supportsHoverRef = useRef(
+    typeof window !== "undefined" &&
+      window.matchMedia("(hover: hover)").matches,
+  );
+
+  useEffect(() => {
+    return () => {
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const revealTooltipOnTap = () => {
+    if (!exact || supportsHoverRef.current) return;
+
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+    }
+
+    setShowTapTooltip(true);
+    hideTimeoutRef.current = setTimeout(() => {
+      setShowTapTooltip(false);
+      hideTimeoutRef.current = null;
+    }, 800);
+  };
+
   if (!exact) {
     return (
       <p className="text-body-sm mt-1 text-black/50">{relative}</p>
@@ -57,6 +87,8 @@ function CheckedAtInfo({
         <button
           type="button"
           aria-label={`Přesný čas kontroly: ${exact}`}
+          aria-expanded={showTapTooltip}
+          onClick={revealTooltipOnTap}
           className="inline-flex rounded-full text-black/40 transition-colors hover:text-black/70 focus-visible:text-black/70 focus-visible:outline-none"
         >
           <svg
@@ -77,7 +109,9 @@ function CheckedAtInfo({
         </button>
         <span
           role="tooltip"
-          className="text-body-sm pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-black px-2.5 py-1.5 text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+          className={`text-body-sm pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-black px-2.5 py-1.5 text-white shadow-lg transition-opacity ${
+            showTapTooltip ? "opacity-100" : "opacity-0"
+          } group-hover:opacity-100 group-focus-within:opacity-100`}
         >
           {exact}
         </span>
