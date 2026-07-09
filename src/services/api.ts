@@ -111,26 +111,26 @@ export function formatRelativeCheck(iso: string | undefined): string | null {
   if (Number.isNaN(measured.getTime())) return null;
 
   const diffMs = Date.now() - measured.getTime();
-  if (diffMs < 0) return "Kontrolováno právě teď";
+  if (diffMs < 0) return "Právě teď";
 
   const minutes = Math.floor(diffMs / (1000 * 60));
   if (minutes < 60) {
     return minutes <= 1
-      ? "Kontrolováno právě teď"
-      : `Kontrolováno před ${minutes} min`;
+      ? "Právě teď"
+      : `Před ${minutes} min`;
   }
 
   const hours = Math.floor(minutes / 60);
   if (hours < 24) {
     return hours === 1
-      ? "Kontrolováno před 1 h"
-      : `Kontrolováno před ${hours} h`;
+      ? "Před 1 h"
+      : `Před ${hours} h`;
   }
 
   const days = Math.floor(hours / 24);
   return days === 1
-    ? "Kontrolováno včera"
-    : `Kontrolováno před ${days} dny`;
+    ? "Včera"
+    : `Před ${days} dny`;
 }
 
 export function getNextCollectionLabel(
