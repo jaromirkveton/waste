@@ -83,16 +83,16 @@ function CheckedAtInfo({
   return (
     <div className="text-body-sm mt-1 flex items-center justify-center gap-1 text-black/50">
       <span>{relative}</span>
-      <span className="group relative inline-flex">
+      <span className="inline-flex shrink-0">
         <button
           type="button"
           aria-label={`Přesný čas kontroly: ${exact}`}
           aria-expanded={showTapTooltip}
           onClick={revealTooltipOnTap}
-          className="inline-flex rounded-full text-black/40 transition-colors hover:text-black/70 focus-visible:text-black/70 focus-visible:outline-none"
+          className="group relative inline-flex size-3.5 shrink-0 items-center justify-center rounded-full text-black/40 hover:text-black/70 focus-visible:outline-none"
         >
           <svg
-            className="size-3.5"
+            className="size-3.5 shrink-0"
             viewBox="0 0 16 16"
             fill="none"
             aria-hidden="true"
@@ -106,15 +106,17 @@ function CheckedAtInfo({
             />
             <circle cx="8" cy="5" r="0.75" fill="currentColor" />
           </svg>
+          <span
+            role="tooltip"
+            className={`text-body-sm pointer-events-none absolute bottom-[calc(100%+0.5rem)] left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-lg bg-black px-2.5 py-1.5 text-white shadow-lg ${
+              showTapTooltip
+                ? "visible opacity-100"
+                : "invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-visible:visible group-focus-visible:opacity-100"
+            }`}
+          >
+            {exact}
+          </span>
         </button>
-        <span
-          role="tooltip"
-          className={`text-body-sm pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-black px-2.5 py-1.5 text-white shadow-lg transition-opacity ${
-            showTapTooltip ? "opacity-100" : "opacity-0"
-          } group-hover:opacity-100 group-focus-within:opacity-100`}
-        >
-          {exact}
-        </span>
       </span>
     </div>
   );
