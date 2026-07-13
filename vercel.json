@@ -4,7 +4,7 @@
   "crons": [
     {
       "path": "/api/cron/check-bins",
-      "schedule": "0 17 * * *"
+      "schedule": "0 13 * * *"
     }
   ],
   "rewrites": [

@@ -17,7 +17,7 @@ Open http://localhost:5173/
 
 Web push works on iPhone **only when the app is installed on the Home Screen** (Safari → Sdílet → Přidat na plochu).
 
-A Vercel cron job checks bin levels **once per day around 19:00 Prague time** (18:00 UTC, `0 17 * * *`). If a container was emptied during the day, it should send a push without opening the app. Opening the app also runs a backup check.
+A Vercel cron job checks bin levels **once per day at 15:00 Prague time** (13:00 UTC, `0 13 * * *`). If a container was emptied since the last check, it should send a push without opening the app. Opening the app also runs a backup check.
 
 ### Vercel setup
 
