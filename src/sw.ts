@@ -4,7 +4,22 @@ import { precacheAndRoute } from "workbox-precaching";
 
 declare let self: ServiceWorkerGlobalScope;
 
+interface PeriodicSyncEvent extends ExtendableEvent {
+  tag: string;
+}
+
 precacheAndRoute(self.__WB_MANIFEST);
+
+async function runBinCheck(): Promise<void> {
+  await fetch("/api/check-bins", { method: "POST" });
+}
+
+self.addEventListener("periodicsync", (event: Event) => {
+  const periodicEvent = event as PeriodicSyncEvent;
+  if (periodicEvent.tag === "check-bins") {
+    periodicEvent.waitUntil(runBinCheck());
+  }
+});
 
 self.addEventListener("push", (event: PushEvent) => {
   const payload = event.data?.json() as { title?: string; body?: string } | undefined;
