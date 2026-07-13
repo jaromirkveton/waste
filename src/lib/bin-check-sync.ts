@@ -3,25 +3,6 @@ import { getCurrentPushSubscription, registerServerSubscription } from "./push-n
 let lastSyncAt = 0;
 const SYNC_COOLDOWN_MS = 60 * 1000;
 
-export async function registerPeriodicBinCheck(): Promise<void> {
-  if (!("serviceWorker" in navigator)) return;
-
-  try {
-    const registration = await navigator.serviceWorker.ready;
-    if (!("periodicSync" in registration)) return;
-
-    const periodicSync = registration.periodicSync as {
-      register: (tag: string, options: { minInterval: number }) => Promise<void>;
-    };
-
-    await periodicSync.register("check-bins", {
-      minInterval: 60 * 60 * 1000,
-    });
-  } catch {
-    // Unsupported or permission denied.
-  }
-}
-
 export async function syncBinCheckIfSubscribed(
   options: { force?: boolean } = {},
 ): Promise<void> {
@@ -36,6 +17,6 @@ export async function syncBinCheckIfSubscribed(
     await fetch("/api/check-bins", { method: "POST" });
     lastSyncAt = Date.now();
   } catch {
-    // Best-effort background sync; ignore network errors.
+    // Best-effort backup when the app is opened.
   }
 }

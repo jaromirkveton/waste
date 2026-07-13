@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { registerPeriodicBinCheck, syncBinCheckIfSubscribed } from "../lib/bin-check-sync";
+import { syncBinCheckIfSubscribed } from "../lib/bin-check-sync";
 import {
   getCurrentPushSubscription,
   getIosInstallHint,
@@ -47,7 +47,6 @@ export function usePushNotifications() {
 
     try {
       await registerServerSubscription();
-      await registerPeriodicBinCheck();
       void syncBinCheckIfSubscribed({ force: true });
       setStatus("subscribed");
       setError(null);
@@ -70,7 +69,6 @@ export function usePushNotifications() {
     setError(null);
     try {
       await subscribeToPushNotifications();
-      await registerPeriodicBinCheck();
       await syncBinCheckIfSubscribed({ force: true });
       setStatus("subscribed");
     } catch (err) {
