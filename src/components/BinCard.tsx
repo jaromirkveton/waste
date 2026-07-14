@@ -45,33 +45,51 @@ function CheckedAtInfo({
   relative: string;
   exact: string | null;
 }) {
+  const TAP_TOOLTIP_VISIBLE_MS = 2000;
+  const TAP_TOOLTIP_FADE_MS = 300;
+
   const [showTapTooltip, setShowTapTooltip] = useState(false);
+  const [isTapTooltipFadingOut, setIsTapTooltipFadingOut] = useState(false);
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fadeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const supportsHoverRef = useRef(
     typeof window !== "undefined" &&
       window.matchMedia("(hover: hover)").matches,
   );
 
+  const clearTooltipTimeouts = () => {
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+      hideTimeoutRef.current = null;
+    }
+    if (fadeTimeoutRef.current) {
+      clearTimeout(fadeTimeoutRef.current);
+      fadeTimeoutRef.current = null;
+    }
+  };
+
   useEffect(() => {
     return () => {
-      if (hideTimeoutRef.current) {
-        clearTimeout(hideTimeoutRef.current);
-      }
+      clearTooltipTimeouts();
     };
   }, []);
 
   const revealTooltipOnTap = () => {
     if (!exact || supportsHoverRef.current) return;
 
-    if (hideTimeoutRef.current) {
-      clearTimeout(hideTimeoutRef.current);
-    }
-
+    clearTooltipTimeouts();
+    setIsTapTooltipFadingOut(false);
     setShowTapTooltip(true);
+
     hideTimeoutRef.current = setTimeout(() => {
-      setShowTapTooltip(false);
+      setIsTapTooltipFadingOut(true);
+      fadeTimeoutRef.current = setTimeout(() => {
+        setShowTapTooltip(false);
+        setIsTapTooltipFadingOut(false);
+        fadeTimeoutRef.current = null;
+      }, TAP_TOOLTIP_FADE_MS);
       hideTimeoutRef.current = null;
-    }, 800);
+    }, TAP_TOOLTIP_VISIBLE_MS);
   };
 
   if (!exact) {
@@ -108,9 +126,11 @@ function CheckedAtInfo({
           </svg>
           <span
             role="tooltip"
-            className={`text-body-sm pointer-events-none absolute bottom-[calc(100%+0.5rem)] left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-lg bg-black px-2.5 py-1.5 text-white shadow-lg ${
+            className={`text-body-sm pointer-events-none absolute bottom-[calc(100%+0.5rem)] left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-lg bg-black px-2.5 py-1.5 text-white shadow-lg transition-opacity duration-300 ${
               showTapTooltip
-                ? "visible opacity-100"
+                ? isTapTooltipFadingOut
+                  ? "visible opacity-0"
+                  : "visible opacity-100"
                 : "invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-visible:visible group-focus-visible:opacity-100"
             }`}
           >
