@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import { syncBinCheckIfSubscribed } from "../lib/bin-check-sync";
 import {
   getCurrentPushSubscription,
   getIosInstallHint,
@@ -47,7 +46,6 @@ export function usePushNotifications() {
 
     try {
       await registerServerSubscription();
-      void syncBinCheckIfSubscribed({ force: true });
       setStatus("subscribed");
       setError(null);
     } catch (err) {
@@ -69,7 +67,6 @@ export function usePushNotifications() {
     setError(null);
     try {
       await subscribeToPushNotifications();
-      await syncBinCheckIfSubscribed({ force: true });
       setStatus("subscribed");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Nepodařilo se povolit notifikace.");

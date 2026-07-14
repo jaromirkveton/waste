@@ -1,6 +1,5 @@
 import { useCallback, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { syncBinCheckIfSubscribed } from "../lib/bin-check-sync";
 import { fetchNearbyStations, FIXED_ADDRESS, stationsToBins } from "../services/api";
 
 /** Half of card-shimmer-sweep duration in index.css (1.8s) */
@@ -11,9 +10,7 @@ export function useBins() {
     queryKey: ["bins", FIXED_ADDRESS.lat, FIXED_ADDRESS.lng],
     queryFn: async () => {
       const stations = await fetchNearbyStations(FIXED_ADDRESS);
-      const bins = stationsToBins(stations);
-      void syncBinCheckIfSubscribed();
-      return bins;
+      return stationsToBins(stations);
     },
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: true,
@@ -32,7 +29,6 @@ export function useBins() {
       ]);
       if (!result.error) {
         setRefreshAnimationKey((key) => key + 1);
-        void syncBinCheckIfSubscribed({ force: true });
       }
     } finally {
       setIsManualRefresh(false);

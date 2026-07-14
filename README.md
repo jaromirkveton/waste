@@ -17,7 +17,7 @@ Open http://localhost:5173/
 
 Web push works on iPhone **only when the app is installed on the Home Screen** (Safari → Sdílet → Přidat na plochu).
 
-A Vercel cron job checks bin levels **once per day at 15:00 Prague time** (13:00 UTC, `0 13 * * *`). If a container was emptied since the last check, it should send a push without opening the app. Opening the app also runs a backup check.
+A Vercel cron job checks bin levels **once per day at 15:00 Prague time** (13:00 UTC, `0 13 * * *`). If a container was emptied since the last check, it sends a push notification automatically.
 
 ### Vercel setup
 
@@ -36,5 +36,5 @@ A Vercel cron job checks bin levels **once per day at 15:00 Prague time** (13:00
 
 - **Container data**: Golemio REST API (`/v2/sortedwastestations`)
 - **Fixed address**: hardcoded in `shared/address.ts`
-- **Push**: daily Vercel Cron + backup check on app open + Web Push (service worker)
+- **Push**: daily Vercel Cron + Web Push (service worker)
 - **UI**: React + TypeScript + Vite + Tailwind + TanStack Query
