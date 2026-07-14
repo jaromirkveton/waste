@@ -1,12 +1,6 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "crons": [
-    {
-      "path": "/api/cron/check-bins",
-      "schedule": "0 13 * * *"
-    }
-  ],
   "rewrites": [
     {
       "source": "/((?!api/).*)",
