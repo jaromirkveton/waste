@@ -3,9 +3,6 @@ import type { BinSnapshot } from "./storage";
 /** Minimum percent drop from the previous reading to count as emptied. */
 const SIGNIFICANT_DROP_PERCENT = 25;
 
-/** Bins above this level are not considered emptied even after a large drop. */
-const EMPTIED_MAX_PERCENT = 35;
-
 export interface EmptiedBin {
   containerId: number;
   trashType: string;
@@ -45,7 +42,7 @@ export function detectEmptiedBins(
 
     if (prev !== undefined) {
       const drop = prev.percent - bin.percent;
-      if (drop >= SIGNIFICANT_DROP_PERCENT && bin.percent <= EMPTIED_MAX_PERCENT) {
+      if (drop >= SIGNIFICANT_DROP_PERCENT) {
         emptied.push({
           containerId: bin.containerId,
           trashType: bin.trashType,
