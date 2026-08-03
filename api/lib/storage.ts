@@ -16,6 +16,11 @@ export interface BinSnapshot {
   containerId: number;
   trashType: string;
   percent: number;
+  /**
+   * Lowest fill level recorded after an emptying notification.
+   * While set, further drops are ignored until the bin refills.
+   */
+  emptiedFloor?: number;
 }
 
 export type { StoredPushSubscription };

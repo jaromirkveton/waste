@@ -17,7 +17,7 @@ Open http://localhost:5173/
 
 Web push works on iPhone **only when the app is installed on the Home Screen** (Safari → Sdílet → Přidat na plochu).
 
-A [cron-job.org](https://cron-job.org) job checks bin levels **every hour**. If a container was emptied since the last check, it sends a push notification automatically.
+A [cron-job.org](https://cron-job.org) job checks bin levels **every hour**. If a container dropped by at least 25% since the last check, it sends a push notification. Further drops for that container are ignored until it refills by at least 20%, so one emptying does not spam notifications.
 
 ### Vercel setup
 

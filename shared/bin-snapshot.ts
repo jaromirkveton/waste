@@ -2,10 +2,21 @@ export interface BinSnapshot {
   containerId: number;
   trashType: string;
   percent: number;
+  /**
+   * Lowest fill level recorded after an emptying notification.
+   * While set, further drops are ignored until the bin refills.
+   */
+  emptiedFloor?: number;
 }
 
 /** Minimum percent drop from the previous reading to count as emptied. */
 const SIGNIFICANT_DROP_PERCENT = 25;
+
+/**
+ * After notifying an emptying, ignore further drops until the bin has
+ * refilled by at least this much above the emptied low.
+ */
+const REFILL_PERCENT = 20;
 
 export interface EmptiedBin {
   containerId: number;
@@ -14,23 +25,23 @@ export interface EmptiedBin {
   currentPercent: number;
 }
 
-function mergeNextState(
+function mergeMissingPrevious(
   previous: BinSnapshot[],
-  current: BinSnapshot[],
+  next: BinSnapshot[],
 ): BinSnapshot[] {
-  const next = [...current];
+  const merged = [...next];
 
   for (const prev of previous) {
-    const stillPresent = current.some(
+    const stillPresent = next.some(
       (bin) =>
         bin.containerId === prev.containerId || bin.trashType === prev.trashType,
     );
     if (!stillPresent) {
-      next.push(prev);
+      merged.push(prev);
     }
   }
 
-  return next;
+  return merged;
 }
 
 export function detectEmptiedBins(
@@ -40,25 +51,60 @@ export function detectEmptiedBins(
   const prevById = new Map(previous.map((bin) => [bin.containerId, bin]));
   const prevByType = new Map(previous.map((bin) => [bin.trashType, bin]));
   const emptied: EmptiedBin[] = [];
+  const nextCurrent: BinSnapshot[] = [];
 
   for (const bin of current) {
     const prev = prevById.get(bin.containerId) ?? prevByType.get(bin.trashType);
 
-    if (prev !== undefined) {
-      const drop = prev.percent - bin.percent;
-      if (drop >= SIGNIFICANT_DROP_PERCENT) {
-        emptied.push({
+    if (prev === undefined) {
+      nextCurrent.push({ ...bin });
+      continue;
+    }
+
+    if (prev.emptiedFloor !== undefined) {
+      const floor = Math.min(prev.emptiedFloor, bin.percent);
+      if (bin.percent >= floor + REFILL_PERCENT) {
+        nextCurrent.push({
           containerId: bin.containerId,
           trashType: bin.trashType,
-          previousPercent: prev.percent,
-          currentPercent: bin.percent,
+          percent: bin.percent,
+        });
+      } else {
+        nextCurrent.push({
+          containerId: bin.containerId,
+          trashType: bin.trashType,
+          percent: bin.percent,
+          emptiedFloor: floor,
         });
       }
+      continue;
+    }
+
+    const drop = prev.percent - bin.percent;
+    if (drop >= SIGNIFICANT_DROP_PERCENT) {
+      emptied.push({
+        containerId: bin.containerId,
+        trashType: bin.trashType,
+        previousPercent: prev.percent,
+        currentPercent: bin.percent,
+      });
+      nextCurrent.push({
+        containerId: bin.containerId,
+        trashType: bin.trashType,
+        percent: bin.percent,
+        emptiedFloor: bin.percent,
+      });
+    } else {
+      nextCurrent.push({
+        containerId: bin.containerId,
+        trashType: bin.trashType,
+        percent: bin.percent,
+      });
     }
   }
 
   return {
     emptied,
-    nextState: mergeNextState(previous, current),
+    nextState: mergeMissingPrevious(previous, nextCurrent),
   };
 }
